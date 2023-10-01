@@ -1,0 +1,265 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+generator kysely {
+  provider     = "prisma-kysely"
+  output       = "../src/db"
+  enumFileName = "enums.ts"
+  fileName     = "types.ts"
+}
+
+datasource db {
+  provider     = "mysql"
+  url          = env("DATABASE_URL")
+  relationMode = "prisma"
+}
+
+
+enum RANKENUM {
+  I
+  II
+  III
+  IV
+  V
+}
+
+enum UserRole {
+  ADMIN
+  CREATOR
+}
+
+enum Region {
+  BR1
+  EUN1
+  EUW1
+  KR
+  LA1
+  LA2
+  NA1
+  OC1
+  TR1
+  RU
+  JP1
+  PBE1
+}
+
+enum TIERENUM {
+  UNRANKED
+  IRON
+  BRONZE
+  SILVER
+  GOLD
+  PLATINUM
+  EMERALD
+  DIAMOND
+  MASTER
+  GRANDMASTER
+  CHALLENGER
+}
+
+model HighlightTag {
+  id         Int                 @id @default(autoincrement())
+  name       String              @unique
+  highlights HighlightResource[]
+}
+
+
+model HighlightResource {
+  id   Int    @id @default(autoincrement())
+  name String
+
+  tags HighlightTag[]
+  createdAt DateTime @default(now())
+  roflUrlKey          String
+  originalVideoUrlKey String
+
+  selectedPlayerId Int 
+    
+  victimPlayerExportId   Int
+
+  selectedPlayer HighlightPlayer @relation("selectedPlayerExports", fields: [selectedPlayerId], references: [id])
+
+  
+  startTimestamp Int
+  endTimestamp Int
+
+  match  Match  @relation(fields: [gameId, platformId], references: [gameId, platformId])
+  gameId BigInt
+
+  platformId     Region
+  usersBookmarks BookmarksOnHighlights[]
+  histories      HighlightUseHistory[]
+
+  @@index([gameId, platformId])
+  @@index([selectedPlayerId])
+  @@index([victimPlayerExportId])
+}
+
+
+enum HighlightPlayerType {
+  MainPlayer
+  Victim
+}
+
+model HighlightPlayer {
+
+  id Int @id @default(autoincrement())
+  tier TIERENUM
+
+  highlights HighlightResource[] @relation("selectedPlayerExports")  
+
+  participantId Int
+  participant Participant @relation(fields: [participantId], references: [id])
+  
+  playerType HighlightPlayerType  
+  @@index([participantId])
+  
+}
+
+model BookmarksOnHighlights {
+  user   User @relation(fields: [userId], references: [id])
+  userId Int
+
+  highlight   HighlightResource @relation(fields: [highlightId], references: [id])
+  highlightId Int
+
+  @@id([userId, highlightId])
+  @@index([userId])
+  @@index([highlightId])
+}
+
+model HighlightUseHistory {
+  user   User @relation(fields: [userId], references: [id])
+  userId Int
+
+  highlight   HighlightResource @relation(fields: [highlightId], references: [id])
+  highlightId Int
+
+  @@id([userId, highlightId])
+  @@index([userId])
+  @@index([highlightId])
+}
+
+
+model Match {
+  id           Int    @id @default(autoincrement())
+  gameVersion  String
+  gameId       BigInt
+  gameCreation BigInt
+  queueId      Int
+
+  platformId        Region
+  shortGameVersion  String
+  participants      Participant[]
+  HighlightResource HighlightResource[]
+
+  @@unique([gameId, platformId])
+  @@index([shortGameVersion])
+}
+
+model Champion {
+  id           Int            @id
+  name         String         @unique
+  participants Participant[]
+  
+}
+
+model Participant {
+  id             Int      @id @default(autoincrement())
+  participantId  Int
+  champion       Champion @relation(fields: [championId], references: [id])
+  playerName     String
+  normalizedName String
+  teamId         Int
+  tier           TIERENUM
+  summoner       Summoner @relation(fields: [summonerId], references: [id])
+  championId     Int
+
+  summonerId Int
+
+  match      Match  @relation(fields: [gameId, platformId], references: [gameId, platformId])
+  gameId     BigInt
+  platformId Region
+
+
+  highlightPlayers HighlightPlayer[]
+
+  @@unique([gameId, platformId, participantId])
+  @@index([summonerId])
+  @@index([championId])
+  @@index([playerName])
+}
+
+model ProTeam {
+  id        Int        @id @default(autoincrement())
+  name      String     @unique
+  initial   String     @unique
+  progamers Progamer[]
+}
+
+model Platform {
+  id        Int        @id @default(autoincrement())
+  name      String     @unique  
+  streamers Streamer[]
+}
+
+model Streamer {
+  id           Int            @id @default(autoincrement())
+  broadcastPlatform      Platform        @relation(fields: [proTeamId], references: [id])
+  proTeamId    Int
+  name         String
+
+  summoners    Summoner[]  
+
+  @@unique([proTeamId, name])
+  @@index([proTeamId])
+}
+
+model Progamer {
+  id           Int            @id @default(autoincrement())
+  proTeam      ProTeam        @relation(fields: [proTeamId], references: [id])
+  proTeamId    Int
+  name         String
+  summoners    Summoner[]
+  
+  @@unique([proTeamId, name])
+  @@index([proTeamId])
+}
+
+model Summoner {
+  id                  Int      @id @default(autoincrement())
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  encryptedSummonerId String
+
+  tier         TIERENUM
+  rank         RANKENUM
+  leaguePoints Int
+
+  name       String
+  puuid      String @unique
+  platformId Region
+  progamerId Int?
+  streamerId Int?
+
+  progamer Progamer? @relation(fields: [progamerId], references: [id])
+  streamer Streamer? @relation(fields: [streamerId], references: [id])
+  participants Participant[]
+
+  // tierModels   TierModel[]
+
+  @@unique([encryptedSummonerId, platformId])
+  @@index([progamerId])
+  @@index([streamerId])
+}
+
+
+model User {
+  id             Int                     @id @default(autoincrement())
+  email          String
+  firebaseUserId String                  @unique
+  role           UserRole                @default(CREATOR)
+  usersBookmarks BookmarksOnHighlights[]
+  histories      HighlightUseHistory[]
+}
