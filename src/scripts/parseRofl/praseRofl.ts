@@ -1,6 +1,4 @@
-import { File } from "buffer";
-import fs, { openAsBlob } from "fs";
-import path from "path";
+import fs from "fs";
 import { GAME } from "./GAME";
 import {
   Chunk,
@@ -35,7 +33,7 @@ export function parseRofl(roflPath: string) {
     console.log("file signatures does not match rofl format");
   }
 
-  let length = new Lengths(header_bytes.subarray(262));  
+  let length = new Lengths(header_bytes.subarray(262));
   let bytesLeft = length.File - length.Header;
   let file_content_bytes = contents.subarray(288, 288 + bytesLeft);
   let meta_data_length = length.Metadata;
@@ -46,23 +44,6 @@ export function parseRofl(roflPath: string) {
   let payload_header = new PayloadHeader(
     file_content_bytes.subarray(payload_header_start, payload_header_end)
   );
-
-  //   let rootFolderPath = "/Users/sungyongkang/Desktop/ts-rofl-parser";
-
-  //   rootFolderPath = path.join(rootFolderPath, payload_header.GameId.toString());
-
-  //   if(!fs.existsSync(rootFolderPath)) {
-  //     fs.mkdirSync(rootFolderPath);
-  //   }
-
-  //   let keyFrameFolderPath = path.join(rootFolderPath, "keyframes");
-  //   if(!fs.existsSync(keyFrameFolderPath)) {
-  //     fs.mkdirSync(keyFrameFolderPath);
-  //   }
-  //   let chunksFolderPath = path.join(rootFolderPath, "chunks");
-  //   if(!fs.existsSync(chunksFolderPath)) {
-  //     fs.mkdirSync(chunksFolderPath);
-  //   }
 
   let chunk_header_results: Array<ChunkHeader> = [];
   let chunk_header_start = 0;
@@ -100,8 +81,6 @@ export function parseRofl(roflPath: string) {
 
     if (chunk_header.chunkType === ChunkType.Chunk) {
       chunk_idx = chunk_idx + 1;
-      // const chunkSavedPath = path.join(chunksFolderPath, chunk_idx.toString() + '.bin');
-      // fs.writeFileSync(chunkSavedPath, chunk_bytes);
       game_chunk_bytes_Array.push(chunk_bytes);
       pendingAvailableChunkInfo.push({
         chunkId: chunk_idx,
@@ -111,8 +90,6 @@ export function parseRofl(roflPath: string) {
     }
     if (chunk_header.chunkType === ChunkType.keyframe) {
       keyframe_idx = keyframe_idx + 1;
-      // const keyframeSavedPath = path.join(keyFrameFolderPath, keyframe_idx.toString() + '.bin');
-      // fs.writeFileSync(keyframeSavedPath, chunk_bytes);
       keyframe_bytes_array.push(chunk_bytes);
       pendingAvailableKeyFrameInfo.push({
         keyFrameId: keyframe_idx,
@@ -154,12 +131,9 @@ export function parseRofl(roflPath: string) {
     createTime: "Jul 1, 2023 8:04:24 PM",
   };
 
-  // const gameDataSavedPath = path.join(rootFolderPath, "game.json");
-  // const metaDataSavedPath = path.join(rootFolderPath, "metadata.json");
   GAME.gameId = payload_header.GameId.toString();
   GAME.observers.encryptionKey = payload_header.EncryptionKey;
-  // fs.writeFileSync(gameDataSavedPath, JSON.stringify(GAME), 'utf-8');
-  // fs.writeFileSync(metaDataSavedPath, JSON.stringify(mte), 'utf-8');
+
   return {
     game: GAME,
     metadata: mte,
@@ -167,4 +141,3 @@ export function parseRofl(roflPath: string) {
     game_chunk_bytes_Array,
   };
 }
-// readRofl("/Users/sungyongkang/Desktop/lol-replays/EUW1-6580538381.rofl");

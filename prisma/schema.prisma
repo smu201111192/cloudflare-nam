@@ -72,19 +72,13 @@ model HighlightResource {
   tags HighlightTag[]
   createdAt DateTime @default(now())
   roflUrlKey          String
-  originalVideoUrlKey String
-
-  selectedPlayerId Int 
-    
-  victimPlayerExportId   Int
-
-  selectedPlayer HighlightPlayer @relation("selectedPlayerExports", fields: [selectedPlayerId], references: [id])
-
+  originalVideoUrlKey String  
   
   startTimestamp Int
   endTimestamp Int
 
   match  Match  @relation(fields: [gameId, platformId], references: [gameId, platformId])
+  highlightPlayers HighlightPlayer[]
   gameId BigInt
 
   platformId     Region
@@ -92,8 +86,7 @@ model HighlightResource {
   histories      HighlightUseHistory[]
 
   @@index([gameId, platformId])
-  @@index([selectedPlayerId])
-  @@index([victimPlayerExportId])
+  
 }
 
 
@@ -102,19 +95,28 @@ enum HighlightPlayerType {
   Victim
 }
 
+// Participant - HighlightPlayer - Highlight
 model HighlightPlayer {
 
   id Int @id @default(autoincrement())
   tier TIERENUM
 
-  highlights HighlightResource[] @relation("selectedPlayerExports")  
+  // highlights HighlightResource[] @relation("selectedPlayerExports")  
 
   participantId Int
   participant Participant @relation(fields: [participantId], references: [id])
+
+  highlightId Int
+  
+  highlight HighlightResource @relation(fields: [highlightId], references: [id])
   
   playerType HighlightPlayerType  
-  @@index([participantId])
-  
+
+  // @@unique([])
+  @@index([participantId])  
+  @@index([highlightId])
+
+  @@unique([highlightId, participantId])
 }
 
 model BookmarksOnHighlights {
@@ -172,6 +174,7 @@ model Participant {
   playerName     String
   normalizedName String
   teamId         Int
+  
   tier           TIERENUM
   summoner       Summoner @relation(fields: [summonerId], references: [id])
   championId     Int

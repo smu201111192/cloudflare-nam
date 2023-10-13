@@ -18,6 +18,7 @@ export type HighlightPlayer = {
     id: Generated<number>;
     tier: TIERENUM;
     participantId: number;
+    highlightId: number;
     playerType: HighlightPlayerType;
 };
 export type HighlightResource = {
@@ -26,8 +27,6 @@ export type HighlightResource = {
     createdAt: Generated<Timestamp>;
     roflUrlKey: string;
     originalVideoUrlKey: string;
-    selectedPlayerId: number;
-    victimPlayerExportId: number;
     startTimestamp: number;
     endTimestamp: number;
     gameId: number;

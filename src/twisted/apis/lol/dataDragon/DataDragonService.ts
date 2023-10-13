@@ -17,13 +17,18 @@ import { RunesReforgedDTO } from "../../../models-dto/data-dragon/runes-reforged
 import { Options } from "ky";
 import ky from "ky";
 
-const defaultLang = "en_US";
+// const defaultLang = "ko_KR";
+// const defaultLang = "en_US";
 
 /**
  * Data Dragon is our way of centralizing League of Legends game data and assets, including champions, items, runes, summoner spells, and profile icons. All of which can be used by third-party developers. You can download a gzipped tar file (.tar.gz) for each patch which will contain all assets for that patch.
  * https://ddragon.Lol.com/cdn/dragontail-9.20.1.tgz
  * Please be aware that updating Data Dragon after each League of Legends patch is a manual process, so it is not always updated immediately after a patch. Your patience is appreciated.
  */
+
+type Lang = "ko_KR" | "zh_CN" | "en_US";
+
+
 export class DataDragonService {
   // Internal methods
   private async request<T>(
@@ -59,22 +64,24 @@ export class DataDragonService {
   /**
    * Runes reforged (perks)
    */
-  async getRunesReforged(): Promise<RunesReforgedDTO[]> {
+  async getRunesReforged(lang: Lang): Promise<RunesReforgedDTO[]> {
     const version = (await this.getVersions())[0];
-    const path = `cdn/${version}/data/${defaultLang}/runesReforged.json`;
+    const path = `cdn/${version}/data/${lang}/runesReforged.json`;
     return this.request(path);
   }
 
-  async getChampion(): Promise<ChampionsDataDragon>;
+  async getChampion(lang: Lang): Promise<ChampionsDataDragon>;
   async getChampion(
+    lang: Lang,
     champ: Champions | number
   ): Promise<ChampionsDataDragonDetailsSolo>;
   async getChampion(
+    lang: Lang,
     champ?: Champions
   ): Promise<ChampionsDataDragon | ChampionsDataDragonDetailsSolo> {
     const version = (await this.getVersions())[0];
     let champName = "";
-    let path = `cdn/${version}/data/${defaultLang}/champion`;
+    let path = `cdn/${version}/data/${lang}/champion`;
     if (champ) {
       champName = getChampionNameCapital(champ);
       path += `/${champName}.json`;

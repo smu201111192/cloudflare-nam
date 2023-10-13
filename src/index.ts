@@ -2,54 +2,39 @@ import { Hono } from "hono";
 import { poweredBy } from "hono/powered-by";
 import { logger } from "hono/logger";
 import { prettyJSON } from "hono/pretty-json";
-import highlights from "./routes/highlights";
-import { LolApi } from "./twisted";
-import { RegionGroups, Regions } from "./twisted/constants";
-const app = new Hono();
+import gameRoutes from "./controllers/game/game.route";
+import spectateRoutes from "./controllers/spectate/spectate.route";
+import highlightRoute from "./controllers/highlight/highlight.route";
+import { cors } from "hono/cors";
+import { errorHandler } from "./middlewares/error.middleware";
+import { Environment } from "./binding.types";
+import httpStatus from "http-status";
 
+const app = new Hono<Environment>();
+const version = "v1";
+
+app.use("/*", cors());
 app.use(logger());
+
+//@ts-ignore
+app.use("/*", async (c: IContext, next) => {
+  console.log(new Map(c.req.headers));
+  await next();
+});
+
 app.use("*", poweredBy());
 app.use("*", prettyJSON());
-app.route("/highlights", highlights);
 
-app.get("/", async (c) => {
+app.route(`/observer-mode/rest/consumer`, spectateRoutes);
 
-  const api = new LolApi({ key: "" });
-  const summoner = await api.Summoner.getByName("Hide on bush", Regions.KOREA);  
-  const { response: matchIds } = await api.MatchV5.list(
-    summoner.response.puuid,
-    RegionGroups.ASIA,
-    { count: 1 }
-  );
+app.route(`/${version}/game`, gameRoutes);
+app.route(`/${version}/highlights`, highlightRoute);
 
-  let promises: Promise<any>[] = [];
-
-  for (const matchId of matchIds) {
-    const go = async () => {
-
-      const { response } = await api.MatchV5.get(matchId, RegionGroups.ASIA);
-      const gameCreation = response.info.gameCreation;
-      const gameVersion = response.info.gameVersion;
-      const participants = response.info.participants.map((p) => {
-        return {
-          championName: p.championName,
-          summonerName: p.summonerName,
-          teamId: p.teamId,
-        };
-      });
-      const d = {
-        gameCreation,
-        gameVersion,
-        participants,
-      };
-      return d;
-    };
-    promises.push(go())
-    // data.push(d);
-  }
-  const data = await Promise.all(promises);
-
-  return c.json({ data });
+app.notFound((c) => {
+  // c.notFound() 호출시 일로옴
+  return c.text("Not Found", httpStatus.NOT_FOUND);
 });
+
+app.onError(errorHandler);
 
 export default app;

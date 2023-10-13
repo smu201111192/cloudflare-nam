@@ -2,6 +2,7 @@ export interface Player {
   participant_id: number;
   player_number: number;
   tier: string;
+  rank: string;
   skill_level_up_events: Event[];
   champ_name: string;
   name: string;
